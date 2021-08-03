@@ -1,0 +1,97 @@
+version: '3.7'
+services:
+  web:
+    image: nginx:alpine
+    volumes:
+      - box:/var/www:${FILE_SYNC}
+      - ${MAGENTO_PATH}/magento-docker/etc/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ${PATH_TO_CRT_PUBLIC}:/etc/nginx/server.crt
+      - ${PATH_TO_CRT_PRIVATE}:/etc/nginx/server.key
+      - ${MAGENTO_PATH}/magento-docker/etc/nginx/fetch_env.js:/etc/nginx/fetch_env.js
+    ports:
+      - ${WEB_PORT}:80
+      - ${WEBS_PORT}:443
+  db:
+    image: mariadb:10.4
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_DATABASE: magento
+    ports:
+      - ${DB_PORT}:3306
+  elastic:
+    image: elasticsearch:7.1.0
+    hostname: elastic
+    ports:
+      - ${ELASTIC_PORT}:9200
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    x-hits:
+      - curl -i http://localhost:9200/_cluster/health
+    x-info: https://devdocs.magento.com/guides/v2.3/config-guide/elasticsearch/es-overview.html
+    x-setup:
+      - bin/magento config:set catalog/search/engine elasticsearch7
+  app:
+    image: duhon/php:7.4-fpm
+    hostname: app
+    volumes:
+      - ${PWD}/docker-compose.yml:/var/www/magento-docker/docker-compose.yml
+      - box:/var/www:${FILE_SYNC}
+      - ${MAGENTO_PATH}/magento-docker/etc/php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+      - ${MAGENTO_PATH}/magento-docker/etc/php/tools:/usr/local/bin/magento2:ro
+      - ${MAGENTO_PATH}/magento-docker/etc/php/php.ini:/usr/local/etc/php/php.ini:ro
+      - ${MAGENTO_PATH}/magento-docker/etc/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
+    environment:
+      COMPOSER_HOME: /composer
+    x-setup:
+      - composer self-update
+      - bin/magento config:set web/seo/use_rewrites 1
+  mail:
+    image: mailhog/mailhog
+    hostname: mail
+    expose:
+      - 1025
+      - 8025
+    ports:
+      - ${MAIL_PORT}:8025
+  redis-master:
+    image: redis
+    hostname: redis
+    expose:
+      - "6379"
+    ports:
+      - ${REDIS_PORT}:6379
+    sysctls:
+      net.core.somaxconn: 1024
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000
+    x-hints:
+      - redis-cli monitor
+      - telnet localhost 6379
+    x-setup:
+      - bin/magento setup:config:set --page-cache=redis --page-cache-redis-server=redis-master
+      - bin/magento setup:config:set --session-save=redis --session-save-redis-host=redis-master
+      - bin/magento setup:config:set --cache-backend=redis --cache-backend-redis-server=redis-master
+    x-info: https://devdocs.magento.com/guides/v2.3/config-guide/redis/config-redis.html
+  redis-stat:
+    image: insready/redis-stat
+    hostname: redis-stat
+    expose:
+      - 63790
+    ports:
+      - ${REDIS_STAT_PORT}:63790
+    command: '--server redis'  
+volumes:
+  box: { }
+networks:
+  default:
+    driver: bridge

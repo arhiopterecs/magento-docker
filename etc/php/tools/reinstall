@@ -33,3 +33,6 @@ bin/magento setup:install \
 #do x-setup lines
 IFS=$'\n' setup=($(yq read /var/www/magento-docker/docker-compose.yml services.*.x-setup | grep -oP '^(?:\s*\-\s)+(?!null)\K.*'))
 for i in ${setup[*]}; do eval "${i}"; done
+
+php bin/magento deploy:mode:set developer
+php bin/magento cache:clean
