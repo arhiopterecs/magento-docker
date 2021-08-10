@@ -1,0 +1,181 @@
+#!/bin/bash
+
+source ./.env
+
+function create () 
+{
+    if [[ -z "${@}" ]]
+    then
+      echo Help Create command
+      exit;
+    fi
+
+    SOURCES=($(printf "%s\n" "${@}" | sort -u))
+    DOCKER_APP_CONTAINER=$(docker-compose -f ${LOCAL_DOCKER_COMPOSE_FILE} ps -q app|awk '{print $1}')
+
+    for i in "${!SOURCES[@]}"; do
+        case ${SOURCES[$i]} in
+            composer)
+                syncComposer
+            ;;
+            magento2ce | ce)
+                syncMagento2Ce
+                syncMagento2CeVendor
+            ;;
+            magento2ee | ee)
+                syncMagento2Ee
+            ;;
+            security-package | sp)
+                syncMagento2SecurityPackage
+            ;;
+            *)
+                echo Unsuported Sources: ${SOURCES[$i]}
+        esac
+    done
+}
+
+function syncComposer ()
+{
+    SOURCE=composer 
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=two-way-resolved \
+        --default-file-mode=0664 \
+        --default-directory-mode=0775 \
+        ${COMPOSER_HOME} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_COMPOSER_HOME})
+
+    echo ${RESULT};
+}
+
+function syncMagento2Ce ()
+{
+    SOURCE=magento2ce
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=two-way-resolved \
+        --default-file-mode=0664 \
+        --default-directory-mode=0775 \
+        --symlink-mode=posix-raw \
+        --ignore-vcs \
+        --ignore=/vendor \
+        --ignore=/var/cache \
+        --ignore=/var/page_cache \
+        --ignore=/var/view_preprocessed \
+        --ignore=/var/composer_home \
+        --ignore=/var/tmp \
+        --ignore=/.idea \
+        --ignore=/.magento \
+        --ignore=/.docker \
+        --ignore=/.github \
+        --ignore=*.sql \
+        --ignore=*.gz \
+        --ignore=*.zip \
+        --ignore=*.bz2 \
+        ./${MAGENTO2CE_PATH}/ docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+
+    echo ${RESULT}
+}
+
+function syncMagento2CeVendor ()
+{
+    SOURCE=magento2ce-vendor
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=two-way-resolved \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
+        ${MAGENTO2CE_PATH}/vendor docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH}/vendor)
+
+    echo ${RESULT}
+}
+
+function syncMagento2Ee()
+{
+    SOURCE=magento2ee
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=one-way-safe \
+        --default-file-mode=0664 \
+        --default-directory-mode=0775 \
+        --ignore=/.idea \
+        --ignore=/.github \
+        --ignore=*.sql \
+        --ignore=*.gz \
+        --ignore=*.zip \
+        --ignore=*.bz2 \
+        --ignore-vcs \
+        ./${MAGENTO2EE_PATH}/ docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+
+    echo ${RESULT}
+}
+
+function syncMagento2SecurityPackage ()
+{
+
+    SOURCE=security-package
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=one-way-replica \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
+        ./${MAGENTO2_SECURITY_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento)
+
+    echo $RESULT
+}
+
+function help()
+{
+    echo 'HELP!!!!'
+}
+
+if [[ ${1} = stop ]]
+then
+    ACTION=terminate
+else
+    ACTION=${1}
+fi
+
+shift 1
+
+case ${ACTION} in
+    start | sync | create)
+        create ${@}
+    exit;;
+    list | monitor | flush | pause | resume | reset | terminate)
+        if [[ -z "${@}" ]]
+        then
+            mutagen sync ${ACTION} --label-selector=project=${PROJECT_NAME}
+          exit;
+        else
+            mutagen sync ${ACTION} --label-selector=project=${PROJECT_NAME},source${@}
+        fi
+    exit;;
+    *)
+        help
+esac
+
