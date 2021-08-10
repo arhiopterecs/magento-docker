@@ -1,0 +1,12 @@
+#!/bin/bash
+#do x-scenarios
+shopt -s extglob
+
+source /var/www/magento-docker/.env 
+
+X_FIELD=${1}
+
+IFS=$'\n' actions=($(yq eval .services.*.x-scenarios.${X_FIELD} /var/www/magento-docker/docker-compose.yml | grep -oP '^(?:\s*\-\s)+(?!null)\K.*'))
+
+for i in ${actions[*]}; do eval "${i}"; done
+
