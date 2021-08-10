@@ -148,6 +148,25 @@ function syncMagento2SecurityPackage ()
     echo $RESULT
 }
 
+function conflictResolver ()
+{
+    SLEEP=${1:-1}
+
+    while true
+    do
+        FILE_LIST=($(mutagen sync list --label-selector=project=${PROJECT_NAME} | grep alpha | awk '{print $2}'))
+
+        for FILE in "${FILE_LIST[@]}"
+        do                                          
+            FILE_PATH=${MAGENTO2CE_PATH}/$FILE
+            rm -rf ${FILE_PATH}
+            echo Deleted: ${FILE_PATH}
+        done 
+        sleep ${SLEEP}
+    done
+}
+
+
 function help()
 {
     echo 'HELP!!!!'
@@ -163,17 +182,19 @@ fi
 shift 1
 
 case ${ACTION} in
-    start | sync | create)
+    start|sync|create)
         create ${@}
     exit;;
-    list | monitor | flush | pause | resume | reset | terminate)
+    list|monitor|flush|pause|resume|reset|terminate)
         if [[ -z "${@}" ]]
         then
             mutagen sync ${ACTION} --label-selector=project=${PROJECT_NAME}
-          exit;
         else
             mutagen sync ${ACTION} --label-selector=project=${PROJECT_NAME},source${@}
         fi
+    exit;;
+    conflict-resolver|resolver|cr|conflict-resolve|resolve-conflict)
+        conflictResolver ${@}
     exit;;
     *)
         help
