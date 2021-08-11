@@ -155,13 +155,25 @@ function conflictResolver ()
     while true
     do
         FILE_LIST=($(mutagen sync list --label-selector=project=${PROJECT_NAME} | grep alpha | awk '{print $2}'))
+        
+        DO_FLUSH=false
 
         for FILE in "${FILE_LIST[@]}"
         do                                          
             FILE_PATH=${MAGENTO2CE_PATH}/$FILE
-            rm -rf ${FILE_PATH}
-            echo Deleted: ${FILE_PATH}
+
+            if [ -f "${FILE_PATH}" ]; then
+                rm -rf ${FILE_PATH}
+                echo Deleted: ${FILE_PATH}
+                DO_FLUSH=true
+            fi
+
         done 
+
+        if  ${DO_FLUSH} 
+        then
+            mutagen sync flush --label-selector=project=${PROJECT_NAME}
+        fi
         sleep ${SLEEP}
     done
 }
@@ -193,7 +205,7 @@ case ${ACTION} in
             mutagen sync ${ACTION} --label-selector=project=${PROJECT_NAME},source${@}
         fi
     exit;;
-    conflict-resolver|resolver|cr|conflict-resolve|resolve-conflict)
+    resolve-conflict|rc)
         conflictResolver ${@}
     exit;;
     *)
