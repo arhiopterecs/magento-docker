@@ -1,4 +1,53 @@
-xdebug-enable: sed -ie "s|#zend_extension=xdebug.so|zend_extension=xdebug.so|" ./etc/php/xdebug.ini && docker-compose restart app app-message-broker
-xdebug-disable: sed -ie "s|zend_extension=xdebug.so|#zend_extension=xdebug.so|" ./etc/php/xdebug.ini && docker-compose restart app app-message-broker
+#!/bin/bash
 
-xdebug-disable: sed -ie "s|zend_extension=xdebug.so|#zend_extension=xdebug.so|" ./etc/php/xdebug.ini && docker-compose restart app app-message-broker
+XDEBUG_INI=./etc/php/xdebug.ini
+
+function help()
+{
+    echo 'HELP!!!!'
+}
+
+function restartAppContainer () 
+{
+    docker-compose up --detach --force-recreate app
+}
+
+function enableXdebug () 
+{
+    sed -ie "s|#zend_extension=xdebug.so|zend_extension=xdebug.so|" ${XDEBUG_INI}
+    restartAppContainer
+}
+
+function disableXdebug ()
+{
+    sed -ie "s|zend_extension=xdebug.so|#zend_extension=xdebug.so|" ${XDEBUG_INI}
+    restartAppContainer
+}
+
+function infoXdebug()
+{   
+    echo 'Live config:'
+    echo '--------------------------------------'
+    docker-compose exec app php -i | grep xdebug
+    echo '--------------------------------------'
+    echo ${XDEBUG_INI}
+    echo '--------------------------------------'
+    cat ${XDEBUG_INI}
+}
+
+ACTION=${1}
+
+case ${ACTION} in
+    on|enable)
+        enableXdebug
+    exit;;
+    off|disable)
+        disableXdebug
+    exit;;
+    i|info)
+        infoXdebug
+    exit;;
+    *)
+        help
+esac
+
