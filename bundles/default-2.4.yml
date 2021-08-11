@@ -92,7 +92,7 @@ services:
   redis-stat:
     image: insready/redis-stat
     depends_on:
-      - redis
+      - redis-master
     expose:
       - 63790
     ports:

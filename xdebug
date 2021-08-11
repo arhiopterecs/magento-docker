@@ -2,28 +2,42 @@
 
 XDEBUG_INI=./etc/php/xdebug.ini
 
+# Shows help menu
 function help()
 {
-    echo 'HELP!!!!'
+    echo 'Helper for managing the xdebug extension'
+    echo '########################################'
+    echo ''
+    echo 'Arguments:'
+    echo 'on|enable     Enables XDebug extension followed by container reload'
+    echo 'off|disable   Disables XDebug extension followed by container reload'
+    echo 'i|info        Shows detailed information about the XDebug extension'
+    echo 's|status      Shows short info about the XDebug extension'
+    echo ''
+    notice
 }
 
+# Restarts app container
 function restartAppContainer () 
 {
     docker-compose up --detach --force-recreate app
 }
 
+# Enables Xdebug extension
 function enableXdebug () 
 {
     sed -ie "s|#zend_extension=xdebug.so|zend_extension=xdebug.so|" ${XDEBUG_INI}
     restartAppContainer
 }
 
+# Disables Xdebug extension
 function disableXdebug ()
 {
     sed -ie "s|zend_extension=xdebug.so|#zend_extension=xdebug.so|" ${XDEBUG_INI}
     restartAppContainer
 }
 
+# Shows detailed information about the XDebug extension
 function infoXdebug()
 {   
     echo 'Live config:'
@@ -35,17 +49,38 @@ function infoXdebug()
     cat ${XDEBUG_INI}
 }
 
+# Shows short info about the XDebug extension
+function statusXdebug()
+{   
+    docker-compose exec app php -v
+}
+
+# Shows notis
+function notice ()
+{
+   echo '################################!###########################################'
+   echo '# If you are using sync with Mutagen.io then you may need to restart sync. #'
+   echo '############################################################################'
+}
+
 ACTION=${1}
 
 case ${ACTION} in
-    on|enable)
+    on|enable) 
         enableXdebug
+        echo ''
+        notice
     exit;;
     off|disable)
         disableXdebug
+        echo ''
+        notice
     exit;;
     i|info)
         infoXdebug
+    exit;;
+    s|status)
+        statusXdebug
     exit;;
     *)
         help

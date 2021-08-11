@@ -2,6 +2,16 @@
 
 source ./.env
 
+# Creates mutagen sync session
+# Availabel the next arguments:
+# composer                - creates mutagen session for sync local composer home directory ${COMPOSER_HOME}
+#                           with composer home directory ${DOCKER_APP_COMPOSER_HOME} in app container
+# magento2ce|ce           - creates mutagen session for sync local magento2ce ${MAGENTO2CE_PATH} directory
+#                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
+# magento2ee|ee           - creates mutagen session for sync local magento2ee ${MAGENTO2EE_PATH} directory
+#                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
+# security-package|sp     - creates mutagen session for sync local security-package ${MAGENTO2_SECURITY_PATH} directory
+#                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento in app container 
 function create () 
 {
     if [[ -z "${@}" ]]
@@ -34,6 +44,8 @@ function create ()
     done
 }
 
+# Creates mutagen session for sync local composer home directory ${COMPOSER_HOME}
+# with composer home directory ${DOCKER_APP_COMPOSER_HOME} in app container
 function syncComposer ()
 {
     SOURCE=composer 
@@ -52,6 +64,8 @@ function syncComposer ()
     echo ${RESULT};
 }
 
+# Creates mutagen session for sync local magento2ce ${MAGENTO2CE_PATH} directory
+# with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container
 function syncMagento2Ce ()
 {
     SOURCE=magento2ce
@@ -86,6 +100,8 @@ function syncMagento2Ce ()
     echo ${RESULT}
 }
 
+# Creates mutagen session for sync local magento2ce/vendor ${MAGENTO2CE_PATH}/vendor directory
+# with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/vendor in app container
 function syncMagento2CeVendor ()
 {
     SOURCE=magento2ce-vendor
@@ -104,6 +120,8 @@ function syncMagento2CeVendor ()
     echo ${RESULT}
 }
 
+# Creates mutagen session for sync local magento2ee ${MAGENTO2EE_PATH} directory
+# with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
 function syncMagento2Ee()
 {
     SOURCE=magento2ee
@@ -129,6 +147,8 @@ function syncMagento2Ee()
     echo ${RESULT}
 }
 
+# Creates mutagen session for sync local security-package ${MAGENTO2_SECURITY_PATH} directory
+# with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento in app container
 function syncMagento2SecurityPackage ()
 {
 
@@ -148,6 +168,7 @@ function syncMagento2SecurityPackage ()
     echo $RESULT
 }
 
+# Resolves sync conflicts based on the rule "alpha (sources) wins"
 function conflictResolver ()
 {
     SLEEP=${1:-1}
@@ -178,10 +199,26 @@ function conflictResolver ()
     done
 }
 
-
+# Shows help menu
 function help()
-{
-    echo 'HELP!!!!'
+{           
+    echo 'Helper for managing the Mutagen.io syn tool'
+    echo '########################################'
+    echo ''
+    echo 'Arguments:'
+    echo 'start|sync|create      Creates mutagen sync session'
+    echo '                       Availabel the next arguments:'
+    echo "                       composer            - creates mutagen session for sync local composer home directory ${COMPOSER_HOME}"
+    echo "                       with composer home directory ${DOCKER_APP_COMPOSER_HOME} in app container"
+    echo "                       magento2ce|ce       - creates mutagen session for sync local magento2ce ${MAGENTO2CE_PATH} directory"
+    echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container"
+    echo "                       magento2ee|ee       - creates mutagen session for sync local magento2ee ${MAGENTO2EE_PATH} directory"
+    echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container"
+    echo "                       security-package|sp - creates mutagen session for sync local security-package ${MAGENTO2_SECURITY_PATH} directory"
+    echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento in app container"
+    echo 'list|monitor|flush|    Wrapper for mutagen command but only for sessions of a project session'
+    echo 'pause|resume|reset|terminate' 
+    echo 'resolve-conflict|rc    Resolves sync conflicts based on the rule "alpha (sources) wins"'
 }
 
 if [[ ${1} = stop ]]
