@@ -1,0 +1,14 @@
+#!/bin/bash
+source ./.env
+
+TIME=${1}
+
+COMMAND="docker-compose ps && mutagen sync list --label-selector=project=${PROJECT_NAME} | grep -E '(Name|Identifier|Connection|Status|Conflicts)'"
+
+if [ -z "${TIME}" ]
+then
+   eval "${COMMAND}"
+else
+   watch -n ${TIME} "${COMMAND}"
+fi
+
