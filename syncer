@@ -10,6 +10,8 @@ source ./.env
 #                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
 # magento2ee|ee           - creates mutagen session for sync local magento2ee ${MAGENTO2EE_PATH} directory
 #                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
+# magento2b2b|b2b         - creates mutagen session for sync local magento2b2b ${MAGENTO2B2B_PATH} directory
+#                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
 # security-package|sp     - creates mutagen session for sync local security-package ${MAGENTO2_SECURITY_PATH} directory
 #                           with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento in app container 
 function create () 
@@ -35,6 +37,9 @@ function create ()
             magento2ee | ee)
                 syncMagento2Ee
             ;;
+            magento2b2b | b2b)
+                syncMagento2b2b
+            ;;
             security-package | sp)
                 syncMagento2SecurityPackage
             ;;
@@ -59,6 +64,7 @@ function syncComposer ()
         --sync-mode=two-way-resolved \
         --default-file-mode=0664 \
         --default-directory-mode=0775 \
+        --symlink-mode=posix-raw \
         ${COMPOSER_HOME} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_COMPOSER_HOME})
 
     echo ${RESULT};
@@ -95,7 +101,7 @@ function syncMagento2Ce ()
         --ignore=*.gz \
         --ignore=*.zip \
         --ignore=*.bz2 \
-        ./${MAGENTO2CE_PATH}/ docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+        ./${MAGENTO2CE_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
 
     echo ${RESULT}
 }
@@ -115,6 +121,7 @@ function syncMagento2CeVendor ()
         --sync-mode=two-way-resolved \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
+        --symlink-mode=posix-raw \
         ${MAGENTO2CE_PATH}/vendor docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH}/vendor)
 
     echo ${RESULT}
@@ -133,8 +140,8 @@ function syncMagento2Ee()
         --label=project=${PROJECT_NAME} \
         --label=source=${SOURCE} \
         --sync-mode=one-way-safe \
-        --default-file-mode=0664 \
-        --default-directory-mode=0775 \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
         --ignore=/.idea \
         --ignore=/.github \
         --ignore=*.sql \
@@ -142,7 +149,36 @@ function syncMagento2Ee()
         --ignore=*.zip \
         --ignore=*.bz2 \
         --ignore-vcs \
-        ./${MAGENTO2EE_PATH}/ docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+        ./${MAGENTO2EE_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+        #./${MAGENTO2EE_PATH} docker://${DOCKER_APP_CONTAINER}/var/www/magento2ee)
+
+    echo ${RESULT}
+}
+
+# Creates mutagen session for sync local magento2b2b ${MAGENTO2B2B_PATH} directory
+# with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container 
+function syncMagento2b2b()
+{
+    SOURCE=magento2b2b
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=one-way-safe \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
+        --ignore=/.idea \
+        --ignore=/.github \
+        --ignore=*.sql \
+        --ignore=*.gz \
+        --ignore=*.zip \
+        --ignore=*.bz2 \
+        --ignore-vcs \
+        ./${MAGENTO2B2B_PATH}/ docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH})
+        #./${MAGENTO2B2B_PATH} docker://${DOCKER_APP_CONTAINER}/var/www/magento2b2b)
 
     echo ${RESULT}
 }
@@ -156,14 +192,24 @@ function syncMagento2SecurityPackage ()
 
     mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
 
+    docker-compose exec app mkdir -p ${DOCKER_APP_MAGENTO2CE_SECURITY_PACKAGE_EXT_PATH}
+
     RESULT=$(mutagen sync create \
         --name=${PROJECT_NAME}-${SOURCE} \
         --label=project=${PROJECT_NAME} \
         --label=source=${SOURCE} \
-        --sync-mode=one-way-replica \
+        --sync-mode=one-way-safe \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
-        ./${MAGENTO2_SECURITY_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento)
+        --symlink-mode=posix-raw \
+        --ignore=/.idea \
+        --ignore=/.github \
+        --ignore=*.sql \
+        --ignore=*.gz \
+        --ignore=*.zip \
+        --ignore=*.bz2 \
+        --ignore-vcs \
+        ./${MAGENTO2_SECURITY_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_SECURITY_PACKAGE_EXT_PATH})
 
     echo $RESULT
 }
@@ -213,6 +259,7 @@ function help()
     echo "                       magento2ce|ce       - creates mutagen session for sync local magento2ce ${MAGENTO2CE_PATH} directory"
     echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container"
     echo "                       magento2ee|ee       - creates mutagen session for sync local magento2ee ${MAGENTO2EE_PATH} directory"
+    echo "                       magento2b2b|b2b       - creates mutagen session for sync local magento2b2b ${MAGENTO2EE_PATH} directory"
     echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH} in app container"
     echo "                       security-package|sp - creates mutagen session for sync local security-package ${MAGENTO2_SECURITY_PATH} directory"
     echo "                       with project directory ${DOCKER_APP_MAGENTO2CE_PATH}/app/code/Magento in app container"
