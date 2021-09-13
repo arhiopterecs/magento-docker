@@ -43,6 +43,9 @@ function create ()
             security-package | sp)
                 syncMagento2SecurityPackage
             ;;
+            sample-data | sd)
+                syncMagento2SempleData
+            ;;
             *)
                 echo Unsuported Sources: ${SOURCES[$i]}
         esac
@@ -83,8 +86,10 @@ function syncMagento2Ce ()
         --label=project=${PROJECT_NAME} \
         --label=source=${SOURCE} \
         --sync-mode=two-way-resolved \
-        --default-file-mode=0664 \
-        --default-directory-mode=0775 \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
         --symlink-mode=posix-raw \
         --ignore-vcs \
         --ignore=/vendor \
@@ -121,6 +126,8 @@ function syncMagento2CeVendor ()
         --sync-mode=two-way-resolved \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
         --symlink-mode=posix-raw \
         ${MAGENTO2CE_PATH}/vendor docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_PATH}/vendor)
 
@@ -142,6 +149,8 @@ function syncMagento2Ee()
         --sync-mode=one-way-safe \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
         --ignore=/.idea \
         --ignore=/.github \
         --ignore=*.sql \
@@ -170,6 +179,8 @@ function syncMagento2b2b()
         --sync-mode=one-way-safe \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
         --ignore=/.idea \
         --ignore=/.github \
         --ignore=*.sql \
@@ -198,9 +209,11 @@ function syncMagento2SecurityPackage ()
         --name=${PROJECT_NAME}-${SOURCE} \
         --label=project=${PROJECT_NAME} \
         --label=source=${SOURCE} \
-        --sync-mode=one-way-safe \
+        --sync-mode=two-way-resolved \
         --default-file-mode=0644 \
         --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
         --symlink-mode=posix-raw \
         --ignore=/.idea \
         --ignore=/.github \
@@ -210,6 +223,35 @@ function syncMagento2SecurityPackage ()
         --ignore=*.bz2 \
         --ignore-vcs \
         ./${MAGENTO2_SECURITY_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_SECURITY_PACKAGE_EXT_PATH})
+
+    echo $RESULT
+}
+
+function syncMagento2SempleData()
+{
+
+    SOURCE=magento2-sample-data
+
+    mutagen sync terminate --label-selector=project=${PROJECT_NAME},source=${SOURCE}
+
+    RESULT=$(mutagen sync create \
+        --name=${PROJECT_NAME}-${SOURCE} \
+        --label=project=${PROJECT_NAME} \
+        --label=source=${SOURCE} \
+        --sync-mode=one-way-replica \
+        --default-file-mode=0644 \
+        --default-directory-mode=0755 \
+        --default-group-beta=root \
+        --default-owner-beta=www-data \
+        --symlink-mode=posix-raw \
+        --ignore=/.idea \
+        --ignore=/.github \
+        --ignore=*.sql \
+        --ignore=*.gz \
+        --ignore=*.zip \
+        --ignore=*.bz2 \
+        --ignore-vcs \
+        ./${MAGENTO2_SAMPLE_DATA_PATH} docker://${DOCKER_APP_CONTAINER}${DOCKER_APP_MAGENTO2CE_SAMPLE_DATA_PATH})
 
     echo $RESULT
 }
